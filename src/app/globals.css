@@ -24,3 +24,10 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Cache le bouton Next.js Dev Tools en local */
+#next-logo, 
+[data-nextjs-dev-tools-button="true"] {
+  display: none !important;
+}
+
