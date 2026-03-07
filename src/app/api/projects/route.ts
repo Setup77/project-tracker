@@ -1,21 +1,21 @@
-import { connectDB } from "@/lib/db";
-import User from "@/lib/models/User";
-import { NextResponse } from "next/server";
+import { connectDB } from "@/lib/db"
+import { getProjects, createProject } from "@/lib/services/projectService"
+import { NextResponse } from "next/server"
 
 export async function GET() {
-  try {
-    // 1. Establish the connection
-    await connectDB();
+  await connectDB()
 
-    // 2. Use Mongoose model (not prisma)
-    const users = await User.find({});
+  const projects = await getProjects()
 
-    return NextResponse.json(users);
-  } catch (error) {
-    console.error("Database error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch users" }, 
-      { status: 500 }
-    );
-  }
+  return NextResponse.json(projects)
+}
+
+export async function POST(req: Request) {
+  await connectDB()
+
+  const body = await req.json()
+
+  const project = await createProject(body)
+
+  return NextResponse.json(project)
 }

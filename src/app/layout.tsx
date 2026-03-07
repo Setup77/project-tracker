@@ -1,32 +1,26 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google"; // Works in Next 15/16
-import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-export const metadata: Metadata = {
-  title: "Project Tracker",
-  description: "Modern Project Management",
-};
+import "./globals.css"
+import { Toaster } from "react-hot-toast"
+import Navbar from "@/components/Navbar"
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
+
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        {children}
+    <html lang="en">
+      <body>
+
+        <Navbar />
+
+        <main className="max-w-6xl mx-auto p-6">
+          {children}
+        </main>
+
+        <Toaster position="top-right" />
+
       </body>
     </html>
-  );
+  )
 }
