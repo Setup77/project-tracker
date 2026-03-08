@@ -1,14 +1,9 @@
+import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
 
 export async function POST() {
+  const cookieStore = await cookies()
+  cookieStore.delete("token") // Méthode la plus fiable en Next 15
 
-  const response = NextResponse.json({
-    message: "Logged out",
-  })
-
-  response.cookies.set("token", "", {
-    expires: new Date(0),
-  })
-
-  return response
+  return NextResponse.json({ message: "Déconnexion réussie" })
 }

@@ -10,7 +10,7 @@ export default function HomePage() {
       </h1>
 
       <p className="text-gray-600">
-        Manage your projects easily
+       Gestionnaire de petits projets
       </p>
 
       <div className="flex justify-center gap-4">
@@ -19,14 +19,14 @@ export default function HomePage() {
           href="/login"
           className="bg-black text-white px-6 py-2 rounded"
         >
-          Login
+          Connexion
         </Link>
 
         <Link
           href="/register"
           className="border px-6 py-2 rounded"
         >
-          Register
+          Inscription
         </Link>
 
       </div>

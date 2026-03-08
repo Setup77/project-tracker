@@ -1,12 +1,15 @@
-import { IProject } from "@/lib/models/Project"
+import { IProject } from "@/types/project"
 
-export default function ProjectCard({ project }: { project: IProject }) {
+interface Props {
+  project: IProject
+}
+
+export default function ProjectCard({ project }: Props) {
   return (
-    <div className="p-4 border rounded shadow-sm">
-      <h2 className="font-semibold">{project.title}</h2>
-      <p className="text-gray-500 text-sm">
-        {project.description}
-      </p>
+    <div className="border p-4 rounded">
+      <h2 className="font-bold">{project.title}</h2>
+      <p>{project.description}</p>
+      <p className="text-sm text-gray-500">{project.status}</p>
     </div>
   )
 }

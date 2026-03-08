@@ -9,25 +9,56 @@ export async function POST(req: Request) {
 
     const { name, email, password } = await req.json();
 
-    const existingUser = await User.findOne({ email });
-
-    if (existingUser) {
+    // 1. Validation de base côté serveur (Sécurité)
+    if (!name || !email || !password) {
       return NextResponse.json(
-        { error: "User already exists" },
-        { status: 400 },
+        { error: "Tous les champs sont obligatoires" },
+        { status: 400 }
       );
     }
 
+    if (password.length < 6) {
+      return NextResponse.json(
+        { error: "Le mot de passe doit faire au moins 6 caractères" },
+        { status: 400 }
+      );
+    }
+
+    // 2. Vérification de l'existence (insensible à la casse)
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+
+    if (existingUser) {
+      return NextResponse.json(
+        { error: "Cet email est déjà utilisé" },
+        { status: 400 }
+      );
+    }
+
+    // 3. Hachage et Création
     const hashed = await hashPassword(password);
 
     const user = await User.create({
       name,
-      email,
+      email: email.toLowerCase(),
       password: hashed,
     });
 
-    return NextResponse.json(user);
+    // 4. Sécurité : Ne jamais renvoyer le mot de passe dans la réponse
+    const { password: _, ...userWithoutPassword } = user._doc;
+
+    return NextResponse.json(
+      { 
+        message: "Compte créé avec succès", 
+        user: userWithoutPassword 
+      }, 
+      { status: 201 }
+    );
+
   } catch (error) {
-    return NextResponse.json({ error: "Registration failed" }, { status: 500 });
+    console.error("Erreur Register:", error);
+    return NextResponse.json(
+      { error: "Une erreur est survenue lors de l'inscription" }, 
+      { status: 500 }
+    );
   }
 }

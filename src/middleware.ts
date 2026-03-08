@@ -1,32 +1,28 @@
-import { NextResponse } from "next/server"
-import type { NextRequest } from "next/server"
-import { verifyToken } from "@/lib/utils/auth"
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
+  const token = request.cookies.get("token")?.value;
+  const { pathname } = request.nextUrl;
 
-  const token = request.cookies.get("token")?.value
+  const isAuthPage =
+    pathname.startsWith("/login") || pathname.startsWith("/register");
 
-  const protectedRoutes = ["/dashboard"]
+  const isDashboard = pathname.startsWith("/dashboard");
 
-  if (protectedRoutes.some(route =>
-      request.nextUrl.pathname.startsWith(route)
-    )) {
-
-    if (!token) {
-      return NextResponse.redirect(new URL("/login", request.url))
-    }
-
-    const valid = verifyToken(token)
-
-    if (!valid) {
-      return NextResponse.redirect(new URL("/login", request.url))
-    }
-
+  // 1️⃣ utilisateur NON connecté → accès interdit au dashboard
+  if (isDashboard && !token) {
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  return NextResponse.next()
+  // 2️⃣ utilisateur connecté → accès interdit login/register
+  if (isAuthPage && token) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*"],
-}
+  matcher: ["/dashboard/:path*", "/login", "/register"],
+};
