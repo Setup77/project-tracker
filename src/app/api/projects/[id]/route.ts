@@ -1,25 +1,50 @@
-import { connectDB } from "@/lib/db"
-import { getProjectById, deleteProject } from "@/lib/services/projectService"
-import { NextResponse } from "next/server"
+import { connectDB } from "@/lib/db";
+import { updateProject, deleteProject } from "@/lib/services/projectService";
+import { NextResponse } from "next/server";
 
-export async function GET(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
-  await connectDB()
-
-  const project = await getProjectById(params.id)
-
-  return NextResponse.json(project)
+interface RouteParams {
+  params: Promise<{ id: string }>; // Next.js 15+ nécessite Promise pour params
 }
 
-export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
-  await connectDB()
+export async function PUT(req: Request, { params }: RouteParams) {
+  try {
+    await connectDB();
+    const { id } = await params;
+    const body = await req.json();
 
-  await deleteProject(params.id)
+    const updatedProject = await updateProject(id, body);
 
-  return NextResponse.json({ success: true })
+    if (!updatedProject) {
+      return NextResponse.json({ message: "Projet non trouvé" }, { status: 404 });
+    }
+
+    return NextResponse.json(updatedProject);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Erreur inconnue";
+    return NextResponse.json(
+      { message: "Erreur lors de la mise à jour", error: errorMessage },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(req: Request, { params }: RouteParams) {
+  try {
+    await connectDB();
+    const { id } = await params;
+
+    const deletedProject = await deleteProject(id);
+
+    if (!deletedProject) {
+      return NextResponse.json({ message: "Projet non trouvé" }, { status: 404 });
+    }
+
+    return NextResponse.json({ message: "Projet supprimé avec succès" });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Erreur inconnue";
+    return NextResponse.json(
+      { message: "Erreur lors de la suppression", error: errorMessage },
+      { status: 500 }
+    );
+  }
 }
