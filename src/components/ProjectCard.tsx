@@ -45,7 +45,10 @@ export default function ProjectCard({ project }: Props) {
     }
   }
   // Check if user is populated or just an ID string
-  const authorName = typeof project.user === 'object' ? project.user.name : "Anonyme";
+  const authorName =
+    typeof project.user === "object" && project.user !== null
+      ? project.user.name
+      : "Anonyme";
 
   return (
     <div className="group relative border border-gray-200 p-5 rounded-xl bg-white shadow-sm hover:shadow-md transition-all">
@@ -75,9 +78,12 @@ export default function ProjectCard({ project }: Props) {
       </div>
 
       <h2 className="font-bold text-lg text-gray-900 mb-1">{project.title}</h2>
-      <p className="text-gray-500 text-sm line-clamp-2 mb-6">
-        {project.description || "Aucune description."}
-      </p>
+      <div
+  className="text-gray-500 text-sm line-clamp-2 mb-6"
+  dangerouslySetInnerHTML={{
+    __html: project.description || "<p>Aucune description.</p>",
+  }}
+/>
 
       <div className="flex justify-between items-center text-[11px] text-gray-400 pt-4 border-t border-gray-50">
         <div className="flex items-center gap-1">

@@ -1,50 +1,78 @@
-import Project from "../models/Project";
-// ✅ Importe les types et l'Enum depuis ton fichier de types
+import Project, { IProject } from "../models/Project";
 import { ProjectType, ProjectStatus } from "@/types/project";
+import { Media, IMedia } from "@/lib/models/Media";
+import { Types } from "mongoose";
 
 /**
  * Récupère tous les projets
  */
+// Interface pour représenter le projet après le populate
+interface PopulatedProject extends Omit<IProject, "user"> {
+  _id: Types.ObjectId;
+  user: {
+    _id: Types.ObjectId;
+    name: string;
+  } | null;
+}
+
+/**
+ * Récupère tous les projets avec les utilisateurs associés
+ */
 export async function getProjects(): Promise<ProjectType[]> {
   try {
-    const data = await Project.find().sort({ createdAt: -1 }).lean();
+    const data = await Project.find()
+      .populate<{ user: { _id: Types.ObjectId; name: string } }>("user", "name")
+      .sort({ createdAt: -1 })
+      .lean<PopulatedProject[]>(); // ✅ Utilisation du type peuplé
 
-    // Map each project to ensure _id and dates are strings
     return data.map((doc) => ({
       ...doc,
       _id: doc._id.toString(),
       createdAt: doc.createdAt.toISOString(),
       updatedAt: doc.updatedAt.toISOString(),
-    })) as ProjectType[];
+
+      // ✅ Sécurisation typée du user
+      user: doc.user
+        ? {
+            _id: doc.user._id.toString(),
+            name: doc.user.name,
+          }
+        : "unknown",
+    })) as unknown as ProjectType[];
   } catch (error) {
-    throw new Error("Erreur de récupération");
+    console.error("Erreur getProjects:", error);
+    throw new Error("Erreur de récupération des projets");
   }
 }
 
-/**
- * Crée un nouveau projet
- */
-export async function createProject(data: {
-  title: string;
-  description: string;
-  status?: ProjectStatus;
-  user: string;
-}) {
+export async function createProject(
+  projectData: {
+    title: string;
+    description: string;
+    status: ProjectStatus;
+    user: string;
+    allowedUsers?: string[];
+  },
+  mediaList: Partial<IMedia>[],
+): Promise<IProject> {
   try {
-    // Dans projectService.ts
-    if (!data.title?.trim() || !data.description?.trim()) {
-      throw new Error("Le titre et la description sont obligatoires");
+    // 1. Création du projet
+    const project = await Project.create(projectData);
+
+    // 2. Création des médias liés au projet
+    if (mediaList.length > 0) {
+      const mediaWithProjectId = mediaList.map((media) => ({
+        ...media,
+        project: project._id, // Association avec l'ID MongoDB du projet
+      }));
+
+      // insertMany est plus performant que plusieurs .create()
+      await Media.insertMany(mediaWithProjectId);
     }
 
-    const project = await Project.create({
-      title: data.title,
-      description: data.description,
-      status: data.status || ProjectStatus.ACTIVE,
-      user: data.user, // Indispensable pour éviter la ValidationError
-    });
-
-    return project.toObject();
+    return project;
   } catch (error) {
+    console.error("Erreur Service createProject:", error);
     throw error;
   }
 }

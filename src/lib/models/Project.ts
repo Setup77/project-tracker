@@ -5,7 +5,8 @@ export interface IProject extends Document {
   title: string;
   description?: string;
   status: ProjectStatus;
-  user: Types.ObjectId;   // ✅ manquant
+  user: Types.ObjectId; // Le créateur (Owner)
+  allowedUsers: Types.ObjectId[]; // ✅ Les utilisateurs autorisés via le formulaire
   createdAt: Date;
   updatedAt: Date;
 }
@@ -32,9 +33,10 @@ const ProjectSchema = new Schema<IProject>(
       ref: "User",
       required: true,
     },
-
+    // ✅ Liste des IDs sélectionnés dans ton formulaire
+    allowedUsers: [{ type: Schema.Types.ObjectId, ref: "User" }],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const Project = models.Project || model<IProject>("Project", ProjectSchema);

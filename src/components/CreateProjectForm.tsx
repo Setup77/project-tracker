@@ -51,10 +51,19 @@ export default function CreateProjectForm() {
         fetchUsers();
     }, []);
 
+    
     const resetForm = () => {
-        setFormData({ title: "", description: "", status: ProjectStatus.ACTIVE, userIds: [] });
+        setFormData({
+            title: "",
+            description: "",
+            status: ProjectStatus.ACTIVE,
+            userIds: []
+        });
+
+        setMediaFiles([]); // IMPORTANT
         setIsOpen(false);
     };
+
 
     const toggleUser = (userId: string) => {
         setFormData(prev => ({
@@ -279,6 +288,7 @@ export default function CreateProjectForm() {
                                         <p className="text-[10px] text-gray-400">JPG, PNG, MP4, PDF (max 10Mo)</p>
                                     </div>
                                     <input
+                                        key={isOpen ? "open" : "closed"} // ✅ Force le re-render et vide l'input à la fermeture/ouverture
                                         type="file"
                                         className="hidden"
                                         multiple

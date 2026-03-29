@@ -8,18 +8,27 @@ import { Search } from "lucide-react";
 export default function ProjectList({ initialProjects }: { initialProjects: ProjectType[] }) {
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredProjects = initialProjects.filter((p) =>
-    p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const stripHtml = (html: string) =>
+    html.replace(/<[^>]+>/g, "");
+
+  const filteredProjects = initialProjects.filter((p) => {
+    const cleanDesc = stripHtml(p.description || "");
+
+    return (
+      p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cleanDesc.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  });
 
   return (
     <section>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <h1 className="text-2xl font-bold text-gray-900">
-          Totals ({filteredProjects.length})
+          {searchTerm
+            ? `Résultats (${filteredProjects.length})`
+            : `Total (${initialProjects.length})`}
         </h1>
-        
+
         <div className="relative w-full md:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input

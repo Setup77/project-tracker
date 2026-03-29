@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { connectDB } from "@/lib/db"
 import Project from "@/lib/models/Project"
 import ProjectCard from "@/components/ProjectCard"
+import "@/lib/models/User";
 import { verifyToken } from "@/lib/utils/auth"
 import { ProjectType } from "@/types/project"
 import CreateProjectForm from "@/components/CreateProjectForm"
