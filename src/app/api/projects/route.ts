@@ -1,6 +1,6 @@
 import { connectDB } from "@/lib/db";
 import { Types } from "mongoose";
-import { getProjects, createProject } from "@/lib/services/projectService";
+import {getProjects, createProject } from "@/lib/services/projectService";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/utils/auth";
@@ -33,15 +33,7 @@ const ALLOWED_TYPES = [
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 Mo
 
-export async function GET() {
-  try {
-    await connectDB();
-    const projects = await getProjects();
-    return NextResponse.json(projects);
-  } catch (error) {
-    return NextResponse.json({ message: "Erreur serveur" }, { status: 500 });
-  }
-}
+
 
 export async function POST(req: Request) {
   try {
@@ -166,3 +158,24 @@ export async function POST(req: Request) {
     return NextResponse.json({ message }, { status: 500 });
   }
 }
+
+
+// ... (garde tout ton code POST existant)
+
+/**
+ * ✅ MÉTHODE GET : Récupère la liste des projets avec leurs médias
+ */
+export async function GET() {
+  try {
+    await connectDB();
+
+    // On utilise la fonction du service qui fait le lien avec les médias
+    const projects = await getProjects();
+
+    return NextResponse.json(projects, { status: 200 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Erreur lors de la récupération";
+    return NextResponse.json({ message }, { status: 500 });
+  }
+}
+

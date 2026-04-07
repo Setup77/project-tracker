@@ -3,45 +3,95 @@ import { ProjectType, ProjectStatus } from "@/types/project";
 import { Media, IMedia } from "@/lib/models/Media";
 import { Types } from "mongoose";
 
-/**
- * Récupère tous les projets
- */
-// Interface pour représenter le projet après le populate
-interface PopulatedProject extends Omit<IProject, "user"> {
+// Interface pour typer les données brutes de MongoDB
+interface ProjectLeanDoc extends Omit<IProject, "user"> {
   _id: Types.ObjectId;
-  user: {
-    _id: Types.ObjectId;
-    name: string;
-  } | null;
+  user: { _id: Types.ObjectId; name: string } | null;
 }
 
 /**
- * Récupère tous les projets avec les utilisateurs associés
+ * RÉCUPÈRE TOUS LES PROJETS (C'est cette fonction qui manquait)
  */
 export async function getProjects(): Promise<ProjectType[]> {
   try {
-    const data = await Project.find()
+
+    const projects = await Project.find()
       .populate<{ user: { _id: Types.ObjectId; name: string } }>("user", "name")
       .sort({ createdAt: -1 })
-      .lean<PopulatedProject[]>(); // ✅ Utilisation du type peuplé
+      .lean<ProjectLeanDoc[]>();
 
-    return data.map((doc) => ({
-      ...doc,
-      _id: doc._id.toString(),
-      createdAt: doc.createdAt.toISOString(),
-      updatedAt: doc.updatedAt.toISOString(),
+    const projectsWithMedia = await Promise.all(
+      projects.map(async (doc) => {
+        const mediaList = await Media.find({ project: doc._id }).lean<
+          IMedia[]
+        >();
 
-      // ✅ Sécurisation typée du user
-      user: doc.user
-        ? {
-            _id: doc.user._id.toString(),
-            name: doc.user.name,
-          }
-        : "unknown",
-    })) as unknown as ProjectType[];
+        return {
+          // On ne fait plus ...doc pour éviter de traîner des ObjectIDs complexes
+          _id: doc._id.toString(),
+          title: doc.title,
+          description: doc.description || "",
+          status: doc.status,
+          // Nettoyage de allowedUsers pour éviter l'erreur "Only plain objects"
+          allowedUsers: (doc.allowedUsers || []).map((id) => id.toString()),
+
+          createdAt: doc.createdAt.toISOString(),
+          updatedAt: doc.updatedAt.toISOString(),
+
+          user: doc.user
+            ? {
+                _id: doc.user._id.toString(),
+                name: doc.user.name,
+              }
+            : "Anonyme",
+
+          media: mediaList.map((m) => ({
+            _id: m._id.toString(),
+            title: m.title,
+            url: m.url,
+          })),
+        };
+      }),
+    );
+
+    return projectsWithMedia as unknown as ProjectType[];
   } catch (error) {
     console.error("Erreur getProjects:", error);
-    throw new Error("Erreur de récupération des projets");
+    return [];
+  }
+}
+
+/**
+ * RÉCUPÈRE UN PROJET PAR SON ID (Mis à jour pour inclure les médias)
+ */
+export async function getProjectById(id: string): Promise<ProjectType | null> {
+  try {
+    const project = await Project.findById(id)
+      .populate("user", "name")
+      .lean<ProjectLeanDoc>();
+
+    if (!project) return null;
+
+    const mediaList = await Media.find({ project: project._id }).lean<
+      IMedia[]
+    >();
+
+    return {
+      ...project,
+      _id: project._id.toString(),
+      createdAt: project.createdAt.toISOString(),
+      updatedAt: project.updatedAt.toISOString(),
+      user: project.user
+        ? { _id: project.user._id.toString(), name: project.user.name }
+        : "Anonyme",
+      media: mediaList.map((m) => ({
+        _id: m._id.toString(),
+        title: m.title,
+        url: m.url,
+      })),
+    } as unknown as ProjectType;
+  } catch (error) {
+    return null;
   }
 }
 
@@ -75,13 +125,6 @@ export async function createProject(
     console.error("Erreur Service createProject:", error);
     throw error;
   }
-}
-
-/**
- * Récupère un projet spécifique par son ID
- */
-export async function getProjectById(id: string): Promise<ProjectType | null> {
-  return await Project.findById(id).lean();
 }
 
 /**

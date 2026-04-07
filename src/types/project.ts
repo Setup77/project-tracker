@@ -4,18 +4,26 @@ export enum ProjectStatus {
   ARCHIVED = "archived",
 }
 
+export interface ProjectMedia {
+  _id: string;
+  title: string;
+  url: string;
+  fileType: string;
+  fileSize: number;
+}
+
 export interface ProjectType {
   _id: string;
   title: string;
   description?: string;
-  status: ProjectStatus; // Utilise l'Enum ici
-  // User can be populated with name/email
+  status: ProjectStatus;
   user:
     | {
         _id: string;
         name: string;
       }
     | string;
+  media: { _id: string; title: string; url: string }[]; // ✅ Typage précis
   createdAt: Date;
   updatedAt: Date;
 }

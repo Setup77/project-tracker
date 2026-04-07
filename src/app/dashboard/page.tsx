@@ -7,6 +7,8 @@ import "@/lib/models/User";
 import { verifyToken } from "@/lib/utils/auth"
 import { ProjectType } from "@/types/project"
 import CreateProjectForm from "@/components/CreateProjectForm"
+import { getProjects } from "@/lib/services/projectService"; // Importez le service
+
 
 // ... imports
 import ProjectList from "@/components/ProjectList";
@@ -32,18 +34,19 @@ if (!decoded || !decoded.userId) redirect("/login");
   const { view } = await searchParams;
   const showAll = view === "all";
 
-  await connectDB();
+  // ✅ UTILISATION DU SERVICE AU LIEU DE Project.find()
+  // On récupère TOUS les projets (qui incluent déjà les médias grâce au service)
+  const allProjectsWithMedia = await getProjects();
 
-  // Filter: If showAll is false, only fetch projects where user matches decoded.id
-  const query = showAll ? { user: { $ne: decoded.userId } } : { user: decoded.userId };
-
-const rawProjects = await Project.find(query)
-  .populate("user", "name") // Fetches only the 'name' field from the User collection
-  .sort({ createdAt: -1 })
-  .lean();
-
-// Serialize for Client Components
-const projects: ProjectType[] = JSON.parse(JSON.stringify(rawProjects));
+  // ✅ FILTRAGE MANUEL (pour respecter votre logique showAll)
+  const projects = allProjectsWithMedia.filter((p) => {
+    const projectUserId = typeof p.user === "object" ? p.user._id : p.user;
+    
+    if (showAll) {
+      return projectUserId !== decoded.userId; // Autres projets
+    }
+    return projectUserId === decoded.userId; // Mes projets
+  });
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
