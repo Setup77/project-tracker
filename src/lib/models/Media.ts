@@ -24,3 +24,4 @@ const MediaSchema = new Schema<IMedia>(
 );
 
 export const Media = models.Media || model<IMedia>("Media", MediaSchema);
+export default Media; // <--- Ajoute cette ligne

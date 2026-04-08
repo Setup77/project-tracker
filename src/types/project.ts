@@ -17,13 +17,15 @@ export interface ProjectType {
   title: string;
   description?: string;
   status: ProjectStatus;
+  progress: number;
   user:
+
     | {
         _id: string;
         name: string;
       }
     | string;
-  media: { _id: string; title: string; url: string }[]; // ✅ Typage précis
+  media: ProjectMedia[]; // ✅ Utilise l'interface détaillée ici
   createdAt: Date;
   updatedAt: Date;
 }

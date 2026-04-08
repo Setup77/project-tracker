@@ -79,10 +79,13 @@ export default function ProjectCard({ project }: Props) {
         </span>
 
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <button onClick={() => toast.success("Édition bientôt disponible")} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all">
+          <button
+            onClick={() => router.push(`/projects/edit/${project._id}`)}
+            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 cursor-pointer rounded-full transition-all"
+          >
             <Pencil size={14} />
           </button>
-          <button onClick={handleDelete} disabled={isDeleting} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all disabled:opacity-50">
+          <button onClick={handleDelete} disabled={isDeleting} className="p-1.5 text-gray-400 cursor-pointer hover:text-red-600 hover:bg-red-50 rounded-full transition-all disabled:opacity-50">
             <Trash2 size={14} />
           </button>
         </div>

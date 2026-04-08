@@ -369,9 +369,6 @@ export default function CreateProjectForm() {
                                                             )}
                                         </div>
 
-
-
-
                                         <input
                                             type="text"
                                             placeholder="Titre du média..."
@@ -383,7 +380,6 @@ export default function CreateProjectForm() {
                                 ))}
                             </div>
                         </div>
-
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
@@ -399,10 +395,7 @@ export default function CreateProjectForm() {
 
                             </div>
                         </div>
-
-
                     </div>
-
                     <div className="flex gap-3 pt-2">
                         <button type="submit" disabled={loading} className="flex-[2] bg-black hover:bg-gray-800 text-white font-medium py-2.5 rounded-lg transition-all disabled:opacity-50">
                             {loading ? "Création..." : "Créer le projet"}
