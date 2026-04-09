@@ -247,7 +247,7 @@ export default function CreateProjectForm() {
                         <div>
                             <div className="flex justify-between items-center mb-2">
                                 <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                                    <Users size={16} /> Partager avec :
+                                    <Users size={16} /> Attribué à :
                                 </label>
                                 <button
                                     type="button"

@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { ProjectType, ProjectStatus } from "@/types/project";
-import { X, Plus } from "lucide-react";
+import { X, Plus, Users } from "lucide-react";
 
 const Editor = dynamic(() => import("@/components/Editor"), {
     ssr: false,
@@ -28,7 +28,45 @@ export default function EditProjectForm({ project }: Props) {
         description: project.description || "",
         status: project.status,
         progress: project.progress || 0, // <-- Ajoutez ceci
+        // On initialise avec les IDs déjà présents dans allowedUsers
+        userIds: project.allowedUsers || [],
     });
+
+    // État pour stocker la liste de tous les utilisateurs (pour le listing)
+    const [users, setUsers] = useState<{ _id: string; name?: string; email: string }[]>([]);
+
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                const { data } = await axios.get("/api/users"); // Ajuste selon ta route
+                // Optionnel : filtrer l'admin actuel pour ne pas se partager le projet à soi-même
+                setUsers(data);
+            } catch (err) {
+                toast.error("Erreur lors de la récupération des utilisateurs");
+            }
+        };
+        fetchUsers();
+    }, []);
+
+    const toggleUser = (userId: string) => {
+        setFormData(prev => ({
+            ...prev,
+            userIds: prev.userIds.includes(userId)
+                ? prev.userIds.filter(id => id !== userId)
+                : [...prev.userIds, userId]
+        }));
+    };
+
+    const selectAllUsers = () => {
+        if (formData.userIds.length === users.length) {
+            setFormData(prev => ({ ...prev, userIds: [] }));
+        } else {
+            setFormData(prev => ({ ...prev, userIds: users.map(u => u._id) }));
+        }
+    };
+
+
+
 
 
     // 📦 Médias existants (DB)
@@ -73,6 +111,17 @@ export default function EditProjectForm({ project }: Props) {
         });
     };
 
+    const removeExistingMedia = (id: string) => {
+        // 1. On ajoute l'ID à la liste des suppressions pour le backend
+        setDeletedMediaIds(prev => [...prev, id]);
+
+        // 2. On le retire de l'affichage local (existingMedia)
+        setExistingMedia(prev => prev.filter(m => m._id !== id));
+
+        toast.success("Média marqué pour suppression");
+    };
+
+
     const updateMediaTitle = (index: number, title: string) => {
         setMediaFiles((prev) => {
             const updated = [...prev];
@@ -113,36 +162,67 @@ export default function EditProjectForm({ project }: Props) {
     // =========================
     // 🚀 SUBMIT
     // =========================
-    async function handleSubmit(e: React.FormEvent) {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
         try {
-            const data = new FormData();
+            const formDataToSend = new FormData();
 
-            data.append("title", formData.title);
-            data.append("description", formData.description);
-            data.append("status", formData.status);
+            // 1. Données de base
+            formDataToSend.append("title", formData.title);
+            formDataToSend.append("description", formData.description);
+            formDataToSend.append("status", formData.status);
+            formDataToSend.append("progress", formData.progress.toString());
 
-            // 🧠 médias supprimés
-            data.append("deletedMedia", JSON.stringify(deletedMediaIds));
+            // Dans handleSubmit...
+            formDataToSend.append("allowedUsers", JSON.stringify(formData.userIds));
 
-            // 🆕 nouveaux fichiers
-            mediaFiles.forEach((m, i) => {
-                data.append(`file_${i}`, m.file);
-                data.append(`title_${i}`, m.title);
+
+            // 2. Gestion du nettoyage (IDs supprimés)
+            formDataToSend.append("deletedMediaIds", JSON.stringify(deletedMediaIds));
+
+            // 3. Médias Existants (Métadonnées + Fichiers de remplacement)
+            // On envoie la liste des existants pour mettre à jour les titres en DB
+            formDataToSend.append("existingMedia", JSON.stringify(
+                existingMedia.map(m => ({ _id: m._id, title: m.title }))
+            ));
+
+            existingMedia.forEach((m) => {
+                // On "cast" temporairement vers un type qui accepte newFile
+                const mediaWithFile = m as ProjectType['media'][0] & { newFile?: File };
+
+                if (mediaWithFile.newFile) {
+                    formDataToSend.append(`replace_${m._id}`, mediaWithFile.newFile);
+                }
             });
 
-            await axios.put(`/api/projects/${project._id}`, data);
 
-            toast.success("Projet mis à jour !");
-            router.push("/"); // ou router.refresh()
+
+            // 4. Nouveaux Médias
+            mediaFiles.forEach((m) => {
+                formDataToSend.append("newFiles", m.file);
+                formDataToSend.append("newTitles", m.title); // On garde l'ordre pour le backend
+            });
+            // Change .patch en .put
+            const response = await axios.put(`/api/projects/${project._id}`, formDataToSend, {
+                headers: { "Content-Type": "multipart/form-data" }
+            });
+
+
+            if (response.status === 200) {
+                toast.success("Projet mis à jour avec succès !");
+                router.push("/dashboard"); // Ou ta route de liste
+                router.refresh();
+            }
         } catch (error) {
+            console.error(error);
             toast.error("Erreur lors de la mise à jour");
         } finally {
             setLoading(false);
         }
-    }
+    };
+
 
     // =========================
     // 🎨 UI
@@ -225,6 +305,40 @@ export default function EditProjectForm({ project }: Props) {
             </div>
 
 
+            {/* --- NOUVEAU : SÉLECTION DES UTILISATEURS --- */}
+            <div>
+                <div className="flex justify-between items-center mb-2">
+                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                        <Users size={16} /> Attribué à  :
+                    </label>
+                    <button
+                        type="button"
+                        onClick={selectAllUsers}
+                        className="text-xs text-blue-600 cursor-pointer hover:underline"
+                    >
+                        {formData.userIds.length === users.length ? "Tout désélectionner" : "Tout sélectionner"}
+                    </button>
+                </div>
+                <div className="border border-gray-200 rounded-lg p-3 max-h-40 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2 bg-gray-50">
+                    {users.length > 0 ? (
+                        users.map((user) => (
+                            <label key={user._id} className="flex items-center gap-2 p-2 bg-white border rounded hover:bg-gray-100 cursor-pointer transition-colors">
+                                <input
+                                    type="checkbox"
+                                    className="w-4 h-4 accent-black"
+                                    checked={formData.userIds.includes(user._id)}
+                                    onChange={() => toggleUser(user._id)}
+                                />
+                                <span className="text-sm truncate">{user.name || user.email}</span>
+                            </label>
+                        ))
+                    ) : (
+                        <p className="text-xs text-gray-500 italic">Aucun autre utilisateur trouvé.</p>
+                    )}
+                </div>
+            </div>
+
+
 
             {/* ================= EXISTING MEDIA ================= */}
 
@@ -233,6 +347,15 @@ export default function EditProjectForm({ project }: Props) {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {existingMedia.map((m) => (
                         <div key={m._id} className="relative border p-2 rounded bg-gray-50">
+
+                            {/* BOUTON DE SUPPRESSION (EXISTANT) */}
+                            <button
+                                type="button"
+                                onClick={() => removeExistingMedia(m._id)}
+                                className="absolute -top-2 -right-2 bg-red-600 text-white cursor-pointer rounded-full p-1 hover:scale-110 transition-transform z-20 shadow-sm"
+                            >
+                                <X size={14} />
+                            </button>
 
                             {/* AJOUTEZ "group" ICI sur le parent direct */}
                             <div className="h-32 w-full rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center relative group">
@@ -433,7 +556,7 @@ export default function EditProjectForm({ project }: Props) {
             <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-black text-white py-2 rounded"
+                className="w-full bg-black text-white py-2 rounded cursor-pointer"
             >
                 {loading ? "Mise à jour..." : "Enregistrer"}
             </button>

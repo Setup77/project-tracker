@@ -26,6 +26,8 @@ export interface ProjectType {
       }
     | string;
   media: ProjectMedia[]; // ✅ Utilise l'interface détaillée ici
+  allowedUsers: string[];
   createdAt: Date;
   updatedAt: Date;
 }
+
