@@ -397,10 +397,10 @@ export default function CreateProjectForm() {
                         </div>
                     </div>
                     <div className="flex gap-3 pt-2">
-                        <button type="submit" disabled={loading} className="flex-[2] bg-black hover:bg-gray-800 text-white font-medium py-2.5 rounded-lg transition-all disabled:opacity-50">
+                        <button type="submit" disabled={loading} className="flex-[2] bg-black cursor-pointer hover:bg-gray-800 text-white font-medium py-2.5 rounded-lg transition-all disabled:opacity-50">
                             {loading ? "Création..." : "Créer le projet"}
                         </button>
-                        <button type="button" onClick={resetForm} className="flex-1 border border-gray-300 text-gray-700 font-medium py-2.5 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
+                        <button type="button" onClick={resetForm} className="flex-1 border cursor-pointer border-gray-300 text-gray-700 font-medium py-2.5 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
                             <X size={18} /> Annuler
                         </button>
                     </div>

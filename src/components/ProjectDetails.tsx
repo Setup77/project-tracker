@@ -51,8 +51,8 @@ export default function ProjectDetails({ project, media }: Props) {
                     <span className="text-sm font-medium">Par {authorName}</span>
                 </div>
 
-                {/* PROGRESS BAR (Affichée uniquement si > 0) */}
-                {project.progress > 0 && (
+                {/* PROGRESS BAR (Affichée uniquement si > 0 ET non complété) */}
+                {project.progress > 0 && project.status !== "completed" && (
                     <div className="mt-6">
                         <div className="flex justify-between mb-1 text-xs font-bold uppercase text-gray-400">
                             <span>Progression</span>

@@ -1,5 +1,4 @@
 import { connectDB } from "@/lib/db";
-import { deleteProject } from "@/lib/services/projectService";
 import { NextResponse } from "next/server";
 import { writeFile, mkdir, unlink } from "fs/promises"; // Pour writeFile
 import path from "path"; // Pour path
@@ -7,7 +6,7 @@ import { cookies } from "next/headers";
 import { Types } from "mongoose"; // Pour Types
 import { verifyToken } from "@/lib/utils/auth";
 import Project from "../../../../lib/models/Project"; // Ton modèle Project
-import { Media } from "../../../../lib/models/Media"; // Ton modèle Media
+import { Media, IMedia } from "../../../../lib/models/Media"; // Ton modèle Media
 
 interface RouteParams {
   params: Promise<{ id: string }>; // Next.js 15+ nécessite Promise pour params
@@ -40,9 +39,14 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   await connectDB();
-
-  // 2. Utilise await pour récupérer l'id
   const { id } = await params;
+
+  // 2. Récupérer le projet pour vérifier l'auteur
+  const project = await Project.findById(id);
+
+  if (!project) {
+    return NextResponse.json({ message: "Projet non trouvé" }, { status: 404 });
+  }
 
   console.log("ID reçu par le serveur :", id);
   // 1. Vérification Auth
@@ -53,6 +57,14 @@ export async function PUT(
 
   if (!userId)
     return NextResponse.json({ message: "Non autorisé" }, { status: 401 });
+
+  // 3. Comparaison sécurisée (toString() est nécessaire pour les ObjectId Mongoose)
+  if (project.user.toString() !== decoded.userId) {
+    return NextResponse.json(
+      { message: "Interdit : Vous n'êtes pas l'auteur de ce projet" },
+      { status: 403 },
+    );
+  }
 
   try {
     const formData = await req.formData();
@@ -137,7 +149,7 @@ export async function PUT(
     const updatedProject = await Project.findByIdAndUpdate(
       id,
       { title, description, status, progress, allowedUsers },
-       { returnDocument: 'after' } // 👈 Remplace { new: true }
+      { returnDocument: "after" }, // 👈 Remplace { new: true }
     );
 
     return NextResponse.json(updatedProject);
@@ -208,12 +220,73 @@ export async function GET(
   }
 }
 
-export async function DELETE(req: Request, { params }: RouteParams) {
+export async function DELETE(
+  req: Request,
+  { params }: { params: { id: string } },
+) {
   try {
     await connectDB();
     const { id } = await params;
 
-    const deletedProject = await deleteProject(id);
+    // 2. Récupérer le projet pour vérifier l'auteur
+    const project = await Project.findById(id);
+
+    if (!project) {
+      return NextResponse.json(
+        { message: "Projet non trouvé" },
+        { status: 404 },
+      );
+    }
+
+    // 1. Vérification Auth
+    const cookieStore = await cookies();
+    const token = cookieStore.get("token")?.value;
+    const decoded = verifyToken(token as string) as DecodedToken | null;
+    const userId = decoded?.userId || decoded?.id || decoded?._id;
+
+    if (!userId)
+      return NextResponse.json({ message: "Non autorisé" }, { status: 401 });
+
+    // 3. Comparaison sécurisée (toString() est nécessaire pour les ObjectId Mongoose)
+    if (project.user.toString() !== decoded.userId) {
+      return NextResponse.json(
+        { message: "Interdit : Vous n'êtes pas l'auteur de ce projet" },
+        { status: 403 },
+      );
+    }
+
+    // 1. Trouver tous les médias associés au projet pour supprimer les fichiers
+    const projectMedias: IMedia[] = await Media.find({ project: id });
+
+    for (const media of projectMedias) {
+      try {
+        // Déterminer le sous-dossier comme à l'upload
+        let subFolder = "files";
+        if (media.fileType.startsWith("image/")) subFolder = "images";
+        else if (media.fileType.startsWith("video/")) subFolder = "videos";
+
+        // Reconstruire le chemin absolu (en utilisant publicId qui contient le nom du fichier)
+        const filePath = path.join(
+          process.cwd(),
+          "public",
+          "uploads",
+          subFolder,
+          media.publicId,
+        );
+
+        // Supprimer le fichier physiquement
+        await unlink(filePath);
+      } catch (err) {
+        console.error(`Erreur suppression fichier: ${media.publicId}`, err);
+        // On continue même si un fichier manque pour ne pas bloquer la suppression DB
+      }
+    }
+
+    // 2. Supprimer les entrées Media en base de données
+    await Media.deleteMany({ project: id });
+
+    // 3. Supprimer le projet
+    const deletedProject = await Project.findByIdAndDelete(id);
 
     if (!deletedProject) {
       return NextResponse.json(
@@ -222,7 +295,9 @@ export async function DELETE(req: Request, { params }: RouteParams) {
       );
     }
 
-    return NextResponse.json({ message: "Projet supprimé avec succès" });
+    return NextResponse.json({
+      message: "Projet et médias supprimés avec succès",
+    });
   } catch (error: unknown) {
     const errorMessage =
       error instanceof Error ? error.message : "Erreur inconnue";

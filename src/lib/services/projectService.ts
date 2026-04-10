@@ -2,6 +2,7 @@ import Project, { IProject } from "../models/Project";
 import { ProjectType, ProjectStatus } from "@/types/project";
 import { Media, IMedia } from "@/lib/models/Media";
 import { Types } from "mongoose";
+import { connectDB } from "@/lib/db";
 
 // Interface pour typer les données brutes de MongoDB
 interface ProjectLeanDoc extends Omit<IProject, "user"> {
@@ -14,7 +15,6 @@ interface ProjectLeanDoc extends Omit<IProject, "user"> {
  */
 export async function getProjects(): Promise<ProjectType[]> {
   try {
-
     const projects = await Project.find()
       .populate<{ user: { _id: Types.ObjectId; name: string } }>("user", "name")
       .sort({ createdAt: -1 })
@@ -58,6 +58,74 @@ export async function getProjects(): Promise<ProjectType[]> {
   } catch (error) {
     console.error("Erreur getProjects:", error);
     return [];
+  }
+}
+
+/**
+ * PAGINNATION DES PROJETS
+ */
+
+export async function getProjectsPaged({
+  userId,
+  showAll,
+  page = 1,
+  limit = 9,
+}: {
+  userId: string;
+  showAll: boolean;
+  page?: number;
+  limit?: number;
+}) {
+  try {
+    await connectDB();
+    const skip = (page - 1) * limit;
+
+    // Construction du filtre
+    const query = showAll ? { user: { $ne: userId } } : { user: userId };
+
+    // 1. Compter le total pour la pagination
+    const total = await Project.countDocuments(query);
+
+    // 2. Récupérer les projets paginés
+    const projects = await Project.find(query)
+      .populate("user", "name")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean<ProjectLeanDoc[]>();
+
+    // 3. Mapper avec les médias (ta logique actuelle)
+    const projectsWithMedia = await Promise.all(
+      projects.map(async (doc) => {
+        const mediaList = await Media.find({ project: doc._id }).lean<
+          IMedia[]
+        >();
+        return {
+          _id: doc._id.toString(),
+          title: doc.title,
+          description: doc.description || "",
+          status: doc.status,
+          createdAt: doc.createdAt.toISOString(),
+          user: doc.user
+            ? { _id: doc.user._id.toString(), name: doc.user.name }
+            : "Anonyme",
+          media: mediaList.map((m) => ({
+            _id: m._id.toString(),
+            title: m.title,
+            url: m.url,
+          })),
+        };
+      }),
+    );
+
+    return {
+      projects: projectsWithMedia as unknown as ProjectType[],
+      totalPages: Math.ceil(total / limit),
+      currentPage: page,
+    };
+  } catch (error) {
+    console.error(error);
+    return { projects: [], totalPages: 0, currentPage: 1 };
   }
 }
 
