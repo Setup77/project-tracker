@@ -20,11 +20,7 @@ export async function GET() {
 
   await connectDB()
 
-  const user = await User.findById(decoded.userId)
-    .select("name email")
-    .lean()
 
-  return NextResponse.json({
-    user
-  })
+ const user = await User.findById(decoded.userId).select("-password");
+  return NextResponse.json({ user });
 }

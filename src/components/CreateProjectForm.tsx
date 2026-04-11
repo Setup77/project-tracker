@@ -41,7 +41,7 @@ export default function CreateProjectForm() {
     useEffect(() => {
         const fetchUsers = async () => {
             try {
-                const { data } = await axios.get("/api/users");
+                const { data } = await axios.get("/api/users?all=true");
                 // Ton API backend doit filtrer l'utilisateur connecté via la session
                 setUsers(data);
             } catch (error) {

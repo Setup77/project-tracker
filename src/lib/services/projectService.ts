@@ -10,56 +10,11 @@ interface ProjectLeanDoc extends Omit<IProject, "user"> {
   user: { _id: Types.ObjectId; name: string } | null;
 }
 
-/**
- * RÉCUPÈRE TOUS LES PROJETS (C'est cette fonction qui manquait)
- */
-export async function getProjects(): Promise<ProjectType[]> {
-  try {
-    const projects = await Project.find()
-      .populate<{ user: { _id: Types.ObjectId; name: string } }>("user", "name")
-      .sort({ createdAt: -1 })
-      .lean<ProjectLeanDoc[]>();
+// Définissez le type pour les filtres de projets
+type ProjectFilter = {
+  user?: string | { $ne: string };
+};
 
-    const projectsWithMedia = await Promise.all(
-      projects.map(async (doc) => {
-        const mediaList = await Media.find({ project: doc._id }).lean<
-          IMedia[]
-        >();
-
-        return {
-          // On ne fait plus ...doc pour éviter de traîner des ObjectIDs complexes
-          _id: doc._id.toString(),
-          title: doc.title,
-          description: doc.description || "",
-          status: doc.status,
-          // Nettoyage de allowedUsers pour éviter l'erreur "Only plain objects"
-          allowedUsers: (doc.allowedUsers || []).map((id) => id.toString()),
-
-          createdAt: doc.createdAt.toISOString(),
-          updatedAt: doc.updatedAt.toISOString(),
-
-          user: doc.user
-            ? {
-                _id: doc.user._id.toString(),
-                name: doc.user.name,
-              }
-            : "Anonyme",
-
-          media: mediaList.map((m) => ({
-            _id: m._id.toString(),
-            title: m.title,
-            url: m.url,
-          })),
-        };
-      }),
-    );
-
-    return projectsWithMedia as unknown as ProjectType[];
-  } catch (error) {
-    console.error("Erreur getProjects:", error);
-    return [];
-  }
-}
 
 /**
  * PAGINNATION DES PROJETS
@@ -68,11 +23,13 @@ export async function getProjects(): Promise<ProjectType[]> {
 export async function getProjectsPaged({
   userId,
   showAll,
+  targetUserId, // Ajout du paramètre
   page = 1,
   limit = 9,
 }: {
   userId: string;
   showAll: boolean;
+  targetUserId?: string; // Optionnel
   page?: number;
   limit?: number;
 }) {
@@ -80,8 +37,16 @@ export async function getProjectsPaged({
     await connectDB();
     const skip = (page - 1) * limit;
 
-    // Construction du filtre
-    const query = showAll ? { user: { $ne: userId } } : { user: userId };
+    // Utilisation du type défini au lieu de 'any'
+    let query: ProjectFilter = {};
+    
+    if (targetUserId) {
+      // Cas : Voir les projets d'un membre spécifique
+      query = { user: targetUserId };
+    } else {
+      // Cas : Dashboard classique
+      query = showAll ? { user: { $ne: userId } } : { user: userId };
+    }
 
     // 1. Compter le total pour la pagination
     const total = await Project.countDocuments(query);
@@ -229,3 +194,5 @@ export async function deleteProject(id: string): Promise<ProjectType | null> {
     );
   }
 }
+
+

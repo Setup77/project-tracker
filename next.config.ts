@@ -1,10 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-   devIndicators: {
-    appIsrStatus: false, // Désactive l'indicateur de statut ISR
-    buildActivity: false, // Désactive l'indicateur de build
-  },
+  devIndicators: false, // Méthode recommandée pour tout désactiver
 };
 
 export default nextConfig;

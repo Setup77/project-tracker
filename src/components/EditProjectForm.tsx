@@ -38,7 +38,7 @@ export default function EditProjectForm({ project }: Props) {
     useEffect(() => {
         const fetchUsers = async () => {
             try {
-                const { data } = await axios.get("/api/users"); // Ajuste selon ta route
+                const { data } = await axios.get("/api/users?all=true"); // Ajuste selon ta route
                 // Optionnel : filtrer l'admin actuel pour ne pas se partager le projet à soi-même
                 setUsers(data);
             } catch (err) {

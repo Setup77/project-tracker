@@ -65,6 +65,18 @@ export default function Navbar() {
 
       <div className="flex gap-4 items-center">
 
+
+        <Link href="/members" className="hover:underline text-gray-600">
+          Membres
+        </Link>
+
+        {/* Added link for the logged-in user's profile */}
+        {user && (
+          <Link href="/profile" className="hover:underline text-gray-600">
+            Mon Profil
+          </Link>
+        )}
+
         <Link href="/dashboard" className="hover:underline">
           Dashboard
         </Link>

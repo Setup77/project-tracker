@@ -31,3 +31,11 @@ body {
   display: none !important;
 }
 
+/* Cache l'indicateur de Next.js en développement */
+#nextjs-dev-tools-menu, 
+[data-next-badge-root],
+.nextjs-toast {
+  display: none !important;
+}
+
+
