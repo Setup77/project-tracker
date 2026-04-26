@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const getAll = searchParams.get("all") === "true"; // Vérifie si on demande tout
     const search = searchParams.get("search") || "";
+    
 
     type UserFilter = {
       email: { $ne: string | undefined };

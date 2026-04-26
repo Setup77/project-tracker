@@ -138,6 +138,46 @@ export default function HomePage() {
           <div className="text-sm text-gray-500 font-medium uppercase tracking-wider">Actifs</div>
         </div>
       </section>
+
+      {/* SECTION ACCÈS DÉMO POUR CLIENTS */}
+      <section className="max-w-5xl mx-auto mt-16 p-8 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-bold text-gray-900">Tester la plateforme immédiatement 🚀</h2>
+          <p className="text-gray-500">Utilisez l&apos;un des comptes de test ci-dessous pour explorer l&apos;interface</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            { email: "willys@yahoo.fr", role: "Admin" },
+            { email: "baya@gmail.com", role: "Manager" },
+            { email: "diane@gmail.com", role: "Collaborateur" }
+          ].map((account) => (
+            <div key={account.email} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-2">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                  {account.role}
+                </span>
+                <span className="text-xs text-gray-400 font-mono">Pass: azerty</span>
+              </div>
+              <div className="mt-2">
+                <p className="text-sm font-semibold text-gray-700 truncate">{account.email}</p>
+              </div>
+              <Link
+                href="/login"
+                className="mt-3 text-center text-xs font-bold text-blue-600 hover:text-blue-700 underline underline-offset-4"
+              >
+                Se connecter
+              </Link>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-center mt-8 text-xs text-gray-400 italic">
+          Note : Les données de ces comptes sont fictifs.
+        </p>
+      </section>
+
+
     </div>
   );
 }
