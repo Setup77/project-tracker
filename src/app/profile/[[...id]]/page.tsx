@@ -93,11 +93,13 @@ export default function ProfilePage() {
                 <div className="relative group">
                     <div className="relative w-32 h-32">
                         <Image
-                            src={preview || `/uploads/avatar/${user.avatar || "default.jpg"}`}
+                            src={preview || (user.avatar?.startsWith('/uploads/') ? user.avatar : `/uploads/avatar/${user.avatar || "default.jpg"}`)}
                             alt="Avatar"
                             fill
+                            unoptimized // 🚀 CRUCIAL : Force Hostinger à charger l'image brute sans passer par le proxy bloqué _next/image
                             className="rounded-full object-cover border-4 border-white shadow-lg"
                         />
+
                     </div>
                     {isMe && (
                         <label className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full text-white cursor-pointer hover:scale-110 transition shadow-md">

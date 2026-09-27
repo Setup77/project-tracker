@@ -75,17 +75,16 @@ export default function MembersPage() {
                                 <div key={member._id} className="border p-4 rounded-xl shadow-sm hover:shadow-md transition bg-white flex items-center gap-4">
                                     <div className="relative w-16 h-16">
                                         <Image
-
-                                            src={`/uploads/avatar/${member.avatar || "default.jpg"}`}
+                                            src={member.avatar?.startsWith('/uploads/') ? member.avatar : `/uploads/avatar/${member.avatar || "default.jpg"}`}
                                             alt={member.name || "Avatar membre"}
                                             fill
                                             className="rounded-full object-cover border"
-
                                             onError={(e) => {
                                                 const target = e.target as HTMLImageElement;
                                                 target.src = "/uploads/avatar/default.jpg";
                                             }}
                                         />
+
                                     </div>
 
                                     <div className="flex-1 min-w-0">
