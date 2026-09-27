@@ -1,22 +1,20 @@
+import { NextRequest, NextResponse } from "next/server"; // Import NextRequest explicitly
 import { connectDB } from "@/lib/db";
 import { Types } from "mongoose";
-import {createProject } from "@/lib/services/projectService";
-import { NextResponse } from "next/server";
+import { createProject } from "@/lib/services/projectService";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/utils/auth";
 import { ProjectStatus } from "@/types/project";
 import { writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 
-// 1. Ajoutez userId à l'interface
 interface DecodedToken {
   id?: string;
   _id?: string;
   sub?: string;
-  userId?: string; // <--- Ajoutez ceci
+  userId?: string;
 }
 
-// ✅ Liste blanche des types autorisés
 const ALLOWED_TYPES = [
   "image/jpeg",
   "image/png",
@@ -26,20 +24,19 @@ const ALLOWED_TYPES = [
   "video/webm",
   "application/pdf",
   "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.ms-excel",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ];
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 Mo
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
-
-
-export async function POST(req: Request) {
+// Change 'Request' to 'NextRequest' to satisfy Next.js 16 Route Hanlder constraints
+export async function POST(req: NextRequest) {
   try {
     await connectDB();
 
-    // 1. Vérification Auth
+    // 1. Auth Verification (Asynchronous cookies call)
     const cookieStore = await cookies();
     const token = cookieStore.get("token")?.value;
     const decoded = verifyToken(token as string) as DecodedToken | null;
@@ -49,7 +46,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Non autorisé" }, { status: 401 });
     }
 
-    // 2. Récupération du FormData
+    // 2. Fetching FormData
     const formData = await req.formData();
     const mediaListToCreate = [];
 
@@ -64,14 +61,14 @@ export async function POST(req: Request) {
     ) {
       return NextResponse.json(
         { message: "Champs invalides" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     if (!title || !description) {
       return NextResponse.json(
         { message: "Données manquantes" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -79,23 +76,23 @@ export async function POST(req: Request) {
       if (key.startsWith("file_")) {
         const file = value as File;
 
-        // 🛡️ SÉCURITÉ 1 : Vérifier le type MIME
+        // 🛡️ SECURITY 1: MIME Type Check
         if (!ALLOWED_TYPES.includes(file.type)) {
           return NextResponse.json(
             { message: `Format non supporté : ${file.name}` },
-            { status: 400 },
+            { status: 400 }
           );
         }
 
-        // 🛡️ SÉCURITÉ 2 : Vérifier la taille (côté serveur)
+        // 🛡️ SECURITY 2: Server Side File Size Check
         if (file.size > MAX_FILE_SIZE) {
           return NextResponse.json(
             { message: `Fichier trop lourd : ${file.name}` },
-            { status: 400 },
+            { status: 400 }
           );
         }
 
-        // 🛡️ SÉCURITÉ 3 : Nettoyer le nom du fichier (anti-injection de chemin)
+        // 🛡️ SECURITY 3: Path Injection Prevention
         const safeName = file.name.replace(/[^a-z0-9.]/gi, "_").toLowerCase();
         const fileName = `${Date.now()}-${safeName}`;
 
@@ -107,7 +104,7 @@ export async function POST(req: Request) {
           process.cwd(),
           "public",
           "uploads",
-          subFolder,
+          subFolder
         );
         const filePath = path.join(uploadDir, fileName);
 
@@ -122,9 +119,8 @@ export async function POST(req: Request) {
             ? titleValue
             : file.name;
 
-        // On prépare l'objet média pour le service
         mediaListToCreate.push({
-          title: safeTitle, // ✅ toujours string,
+          title: safeTitle,
           url: `/uploads/${subFolder}/${fileName}`,
           publicId: fileName,
           fileType: file.type,
@@ -142,7 +138,7 @@ export async function POST(req: Request) {
         user: userId,
         allowedUsers: JSON.parse((formData.get("userIds") as string) || "[]"),
       },
-      mediaListToCreate,
+      mediaListToCreate
     );
 
     return NextResponse.json(
@@ -150,7 +146,7 @@ export async function POST(req: Request) {
         message: "Projet créé avec succès",
         project: newProject,
       },
-      { status: 201 },
+      { status: 201 }
     );
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Erreur serveur";
@@ -158,6 +154,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ message }, { status: 500 });
   }
 }
-
-
-
