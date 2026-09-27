@@ -2,7 +2,6 @@
 
 # dependencies
 /description
-/public/uploads
 /node_modules
 /.pnp
 .pnp.*

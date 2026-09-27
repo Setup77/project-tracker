@@ -17,7 +17,7 @@ export default function MembersPage() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [loading, setLoading] = useState(true);
-    const [search, setSearch] = useState(""); // État pour la recherche
+    const [search, setSearch] = useState(""); // État pour la recherche des membres
 
     useEffect(() => {
         let isMounted = true;
